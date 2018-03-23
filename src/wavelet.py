@@ -43,7 +43,7 @@ def wavelet_basis(x, name="db3", resolution=2 ** 10):
     for scale_ix in range(len(wd_obj)):
         for loc_ix in range(len(wd_obj[scale_ix])):
             wd_obj[scale_ix][loc_ix] = 1
-            wr_obj = pywt.waverec (wd_obj, w)
+            wr_obj = pywt.waverec(wd_obj, w)
             wd_obj[scale_ix][loc_ix] = 0
 
             wr_obj = np.append(wr_obj, wr_obj[-2:]) # so interpolation doesn't run out of bounds
