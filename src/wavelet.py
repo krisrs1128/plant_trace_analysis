@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 
-"""
-Helpers for Constructing Wavelet Bases
+"""Helpers for Constructing Wavelet Bases
 
 author: krissankaran@stanford.edu
 date: 03/18/2018
@@ -14,12 +13,14 @@ import pandas as pd
 
 
 def wavelet_basis(x, name="db3", resolution=2 ** 10):
-    """
-    Evaluate Wavelet basis at x positions
+    """Evaluate Wavelet basis at x positions
 
     :param x: Positions at which to evaluate wavelet basis functions
     :param name: Name of the wavelet family to use (default Daubechies 3)
     :param resolution: How finely to evaluate the wavelet basis numerically
+        (default to 2 ** 10).
+    :return z: A numpy array whose rows are time indices and columns are
+        wavelet basis functions.
 
     >>> x = np.random.random(100)
     >>> z = wavelet_basis(x)
