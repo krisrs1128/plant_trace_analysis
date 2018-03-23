@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 
-"""
-Helpers for Constructing Wavelet Bases
+"""Helpers for Constructing Wavelet Bases
 
 author: krissankaran@stanford.edu
 date: 03/18/2018

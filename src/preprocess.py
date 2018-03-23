@@ -1,16 +1,14 @@
 #! /usr/bin/env python
 
-"""
-
-
-Preprocess raw trace data, so it can be used for standard analysis downstream.
+"""Preprocess raw trace data, so it can be used for standard analysis downstream.
 
 author: krissankaran@stanford.edu
 date: 03/21/2018
 """
 
-import os
+import numpy as np
 import pandas as pd
+import os
 
 
 def process_names(fnames):
@@ -38,26 +36,32 @@ def process_names(fnames):
     return metadata
 
 
-def combine_traces(x):
-    """Combine Raw Traces into Data Array
-
-    :param x: A dictionary of DataFrames, each of which is a raw data trace for
-        a single sample.
-    :return df: A numpy array containing data across all the samples.
-    """
-    pass
-
-
 def read_traces(fnames):
     """Read Traces from File
 
     :param fnames: The original names as a list of strings, encoding features
         for each sample.
-    :return traces: A dictionary of DataFrames containing the raw data.
+    :return traces: A pandas DataFrame containing the raw data.
 
     >>> raw_path = os.path.join("data", "raw", "raw data")
     >>> fnames = os.listdir(raw_path)
     >>> traces = read_traces([os.path.join(raw_path, f) for f in fnames])
+    >>>
+    >>> from plotnine import *
+    >>> (ggplot(traces[traces.time < 550].iloc[::250, :]) +
+            geom_line(aes(x = "time", y = "value", color = "channel")) +
+            geom_vline(
+                aes(xintercept = "time"),
+                data = traces[traces.cut_point == "cut"],
+            ) +
+            ylim(-0.1, 0.07) +
+            facet_wrap("fname", scales = "fixed") +
+            theme(
+                strip_text = element_blank(),
+                axis_text = element_blank(),
+                axis_ticks = element_blank()
+            )
+        )
     """
     traces = dict()
     for fname in fnames:
@@ -65,7 +69,7 @@ def read_traces(fnames):
         print("Processing " + fname)
         cur_trace = []
         with open(fname, "r") as f:
-            f.readline() # skip first line
+            f.readline() # skip header
 
             for line in f:
                 cur_vals = [fname]
@@ -80,6 +84,8 @@ def read_traces(fnames):
         float_ix = ["time"] + ["ch" + str(x) for x in range(1, 5)]
         traces[fname][float_ix] = traces[fname][float_ix].astype(np.float64)
 
-    return pd.concat(traces, ignore_index=True)
-
-
+    return pd.melt(
+        pd.concat(traces, ignore_index = True),
+        id_vars = ["fname", "time", "cut_point"],
+        var_name = "channel"
+    )
