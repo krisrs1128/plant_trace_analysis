@@ -9,6 +9,7 @@ date: 03/21/2018
 import numpy as np
 import pandas as pd
 import os
+import re
 
 
 def process_names(fnames):
@@ -25,15 +26,25 @@ def process_names(fnames):
     >>> fnames = os.listdir(raw_path)
     >>> process_names(fnames)
     """
-    fnames = [x.replace("msl 5", "msl5") for x in fnames] # seems like an error with naming
     split_names = [os.path.splitext(x)[0].split(" ") for x in fnames]
-    metadata = pd.DataFrame(split_names, columns = ["genotype", "ch1", "ch2", "ch3", "ch4"])
+    metadata = pd.DataFrame(split_names, columns = ["genotype_leaf", "ch1", "ch2", "ch3", "ch4"])
     metadata.insert(0, "fname", fnames)
     for i in range(1, 5):
         cur_ix = "ch" + str(i)
         metadata[cur_ix] = metadata[cur_ix].map(lambda x: x.lstrip(cur_ix))
 
-    return metadata
+    genotype = [re.search("[A-z]+", s[0]).group() for s in split_names]
+    source_leaf = ["L" + re.search("[0-9]+", s[0]).group() for s in split_names]
+    metadata.insert(1, "source", source_leaf)
+    metadata.insert(1, "genotype", genotype)
+    metadata = metadata.drop("genotype_leaf", 1)
+
+    return pd.melt(
+        metadata,
+        id_vars=["fname", "genotype", "source"],
+        var_name="channel",
+        value_name="target"
+    )
 
 
 def read_traces(fnames):
@@ -48,7 +59,7 @@ def read_traces(fnames):
     >>> traces = read_traces([os.path.join(raw_path, f) for f in fnames])
     >>>
     >>> from plotnine import *
-    >>> (ggplot(traces[traces.time < 550].iloc[::250, :]) +
+    >>> (ggplot(traces) +
             geom_line(aes(x = "time", y = "value", color = "channel")) +
             geom_vline(
                 aes(xintercept = "time"),
@@ -86,6 +97,48 @@ def read_traces(fnames):
 
     return pd.melt(
         pd.concat(traces, ignore_index = True),
-        id_vars = ["fname", "time", "cut_point"],
+        id_vars = ["fname", "cut_point", "time"],
         var_name = "channel"
     )
+
+
+def align_trace(trace):
+    cut_time = trace.loc[trace["cut_point"] == "cut", "value"]
+    trace["time"] = trace["time"] - float(cut_time)
+    return trace
+
+
+def merge_meta(metadata, combined, cur_times, paste_times):
+    lpaste = len(paste_times)
+    paste_df = pd.concat([
+        metadata.iloc[np.zeros(lpaste), :].reset_index(drop=True),
+        pd.DataFrame(
+            {"cut_point": np.repeat("no_cut", lpaste),
+             "time": paste_times,
+             "value": np.zeros(lpaste)}
+        ).reset_index(drop=True)], axis=1)
+    return pd.concat([paste_df, combined])
+
+
+def mad(data, axis=None):
+    return np.mean(np.absolute(data - np.median(data, axis)), axis)
+
+
+def standardize_trace(trace, min_time=-100, max_time=300, step=0.05):
+    cur_times = trace["time"]
+    cur_meta = trace.iloc[:1, :5]
+
+    if np.min(cur_times) > min_time:
+        prepend_times = np.arange(min_time, np.min(cur_times), step)
+        trace = merge_meta(cur_meta, trace, cur_times, prepend_times)
+
+    if np.max(cur_times) < max_time:
+        postpend_times = np.arange(np.max(cur_times), max_time, step)
+        trace = merge_meta(cur_meta, trace, cur_times, postpend_times)
+
+    v = trace["value"]
+    trace["value"] = (v - np.mean(v)) / mad(v)
+    return trace.loc[
+        (trace["time"] > min_time) &
+        (trace["time"] < max_time)
+    ]
