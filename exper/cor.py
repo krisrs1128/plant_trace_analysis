@@ -52,22 +52,25 @@ for file in np.unique(fnames):
 #     ylim(-0.07, 0.07)
 # )
 
-combined0 = combined
+combined0 = copy.copy(combined)
 
 ## extend / truncate times and standardize
+x = []
 for file in np.unique(fnames):
     for channel in ["ch1", "ch2", "ch3", "ch4"]:
         print("Standardizing " + file + "| channel " + channel)
         cur_trace = (combined["fname"] == file) & (combined["channel"] == channel)
-        combined.loc[cur_trace] = pre.standardize_trace(combined.loc[cur_trace])
+        x.append(pre.standardize_trace(combined.loc[cur_trace]))
 
+del combined
+combined = pd.concat(x)
 
 # (ggplot(combined) +
 #     geom_point(
 #         aes(
 #             x = "time",
 #             y = "value",
-#             color = "target",
+#             color = "target"
 #         ),
 #         size = 0.01
 #     ) +
@@ -75,6 +78,26 @@ for file in np.unique(fnames):
 # )
 
 ## build a coefficient matrix
+times = np.unique(combined["time"])
+wv_coefs = []
+y_hat = []
+for file in np.unique(fnames):
+    for channel in ["ch1", "ch2", "ch3", "ch4"]:
+        print("Decomposing " + file + "| channel " + channel)
+        cur_trace = (combined["fname"] == file) & (combined["channel"] == channel)
+        H = wv.wavelet_basis(combined.loc[cur_trace, "time"], resolution=2 ** 11)
+        coef, pred = wavelet_coefs(H, combined.loc[cur_trace, "value"])
+        wv_coefs.append({
+            "file": file,
+            "channel": channel,
+            "coef": coef
+        })
+        y_hat.append({
+            "file": file,
+            "channel": channel,
+            "y_hat": pred
+        })
+
 
 ## get columns which are nonzero in at least one trace
 
@@ -83,24 +106,6 @@ for file in np.unique(fnames):
 ## plot the scores against the mutation type / source / target
 
 ## inspect a couple traces by hand
-sample_name = "data/raw/raw data/wt6 ch1L13 ch2L8 ch3LD ch4L7.txt"
-sample = combined.loc[
-    (combined["fname"] == sample_name) &
-    (combined["target"] == "L13")
-]
-
-y0 = sample.loc[::10, "value"]
-y = (y0 - np.mean(y0)) / np.std(y0)
-times = sample.loc[::10, "time"]
-H = wv.wavelet_basis(times, resolution = 2 ** 12)
-
-lasso_model = Lasso(fit_intercept=False, alpha=0.0001)
-fit = lasso_model.fit(H, y)
-y_hat = fit.predict(H)
-plt.plot(y.values)
-plt.plot(y_hat)
-
-beta = fit.coef_
 plt.figure()
 H_sub = H[:, np.where(beta != 0.)][:, 0, :]
 for i in range(H_sub.shape[1]):
