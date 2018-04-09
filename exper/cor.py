@@ -52,8 +52,6 @@ for file in np.unique(fnames):
 #     ylim(-0.07, 0.07)
 # )
 
-combined0 = copy.copy(combined)
-
 ## extend / truncate times and standardize
 x = []
 for file in np.unique(fnames):

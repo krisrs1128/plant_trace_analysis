@@ -138,7 +138,5 @@ def standardize_trace(trace, min_time=-100, max_time=300, step=0.05):
 
     v = trace["value"]
     trace["value"] = (v - np.mean(v)) / mad(v)
-    return trace.loc[
-        (trace["time"] > min_time) &
-        (trace["time"] < max_time)
-    ]
+    trace = trace.loc[(trace["time"] > min_time) & (trace["time"] < max_time)]
+    return trace
