@@ -138,7 +138,5 @@ def standardize_trace(trace, min_time=-100, max_time=300, step=0.05):
         postpend_times = np.arange(np.max(cur_times), max_time, step)
         trace = merge_meta(cur_meta, trace, cur_times, postpend_times, v)
 
-    # v = trace["value"]
-    # trace["value"] = (v - np.mean(v)) / mad(v)
     trace = trace.loc[(trace["time"] > min_time) & (trace["time"] < max_time)]
     return trace
