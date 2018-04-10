@@ -108,14 +108,14 @@ def align_trace(trace):
     return trace
 
 
-def merge_meta(metadata, combined, cur_times, paste_times):
+def merge_meta(metadata, combined, cur_times, paste_times, v):
     lpaste = len(paste_times)
     paste_df = pd.concat([
         metadata.iloc[np.zeros(lpaste), :].reset_index(drop=True),
         pd.DataFrame(
             {"cut_point": np.repeat("no_cut", lpaste),
              "time": paste_times,
-             "value": np.zeros(lpaste)}
+             "value": np.repeat(v, lpaste)}
         ).reset_index(drop=True)], axis=1)
     return pd.concat([paste_df, combined])
 
@@ -129,14 +129,16 @@ def standardize_trace(trace, min_time=-100, max_time=300, step=0.05):
     cur_meta = trace.iloc[:1, :5]
 
     if np.min(cur_times) > min_time:
+        v = trace.loc[trace["time"] == np.min(cur_times), "value"]
         prepend_times = np.arange(min_time, np.min(cur_times), step)
-        trace = merge_meta(cur_meta, trace, cur_times, prepend_times)
+        trace = merge_meta(cur_meta, trace, cur_times, prepend_times, v)
 
     if np.max(cur_times) < max_time:
+        v = trace.loc[trace["time"] == np.max(cur_times), "value"]
         postpend_times = np.arange(np.max(cur_times), max_time, step)
-        trace = merge_meta(cur_meta, trace, cur_times, postpend_times)
+        trace = merge_meta(cur_meta, trace, cur_times, postpend_times, v)
 
-    v = trace["value"]
-    trace["value"] = (v - np.mean(v)) / mad(v)
+    # v = trace["value"]
+    # trace["value"] = (v - np.mean(v)) / mad(v)
     trace = trace.loc[(trace["time"] > min_time) & (trace["time"] < max_time)]
     return trace
