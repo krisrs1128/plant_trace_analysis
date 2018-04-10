@@ -52,8 +52,8 @@ def wavelet_basis(x, name="db3", resolution=2 ** 11):
     return np.stack(z).T
 
 
-def wavelet_coefs(H, y, name="db3", resolution=2 ** 11, alpha=0.0001):
-    lasso_model = Lasso(fit_intercept=False, alpha=alpha)
+def wavelet_coefs(H, y, alpha=0.0001):
+    lasso_model = Lasso(fit_intercept=True, alpha=alpha)
     fit = lasso_model.fit(H, y)
     y_hat = fit.predict(H)
     return fit.coef_, y_hat
