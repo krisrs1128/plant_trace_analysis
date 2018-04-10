@@ -12,7 +12,7 @@ from plotnine import ggplot, geom_point, aes
 import pandas as pd
 
 
-def wavelet_basis(x, name="db3", resolution=2 ** 10):
+def wavelet_basis(x, name="db3", resolution=2 ** 11):
     """Evaluate Wavelet basis at x positions
 
     :param x: Positions at which to evaluate wavelet basis functions
@@ -50,3 +50,10 @@ def wavelet_basis(x, name="db3", resolution=2 ** 10):
             z.append((1 - x_diff) * wr_obj[x_floor] + x_diff * wr_obj[x_floor + 1])
 
     return np.stack(z).T
+
+
+def wavelet_coefs(H, y, alpha=0.0001):
+    lasso_model = Lasso(fit_intercept=True, alpha=alpha)
+    fit = lasso_model.fit(H, y)
+    y_hat = fit.predict(H)
+    return fit.coef_, y_hat
